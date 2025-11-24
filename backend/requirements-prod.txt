@@ -1,0 +1,19 @@
+# Production requirements - lightweight, no ML packages
+fastapi==0.104.0
+uvicorn[standard]==0.24.0
+fastapi-cache2==0.2.1
+
+# Google Cloud
+google-cloud-storage==2.14.0
+google-cloud-firestore==2.14.0
+google-auth==2.23.4
+
+# Data Processing (lightweight)
+pandas==2.1.3
+numpy==1.24.3
+
+# Utilities
+pydantic==2.5.0
+pydantic-settings==2.1.0
+python-multipart==0.0.6
+

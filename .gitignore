@@ -1,0 +1,94 @@
+# Local development and testing (keep data but exclude from git)
+local/
+
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+.venv/
+venv/
+env/
+ENV/
+backend/venv/
+backend/env/
+pip-log.txt
+pip-delete-this-directory.txt
+pip-wheel-metadata/
+
+# Node
+node_modules/
+**/node_modules/
+.pnp
+.pnp.js
+frontend/node_modules/
+frontend/.pnp
+frontend/.pnp.js
+frontend/build/
+build/
+dist/
+.npm
+.eslintcache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Cloud SDK (installed locally)
+isablereporting/
+google-cloud-sdk/
+
+# Backups
+*.bak
+*.backup
+
+# GCP / Cloud credentials and keys
+*-service-account*.json
+*-credentials*.json
+service-account*.json
+credentials*.json
+*.pem
+*.key
+*.p12
+*.pfx
+gcp-key*.json
+google-credentials*.json
+

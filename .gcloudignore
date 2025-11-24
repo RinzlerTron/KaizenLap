@@ -1,0 +1,43 @@
+# Default gcloudignore patterns
+.gcloudignore
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Exclude most of local/ but include track maps
+local/**
+!local/data/cloud_upload/processed/track_maps/**
+
+# Exclude large data directories
+local/data/cloud_upload/primary/**
+local/data/cloud_upload/extracted/**
+
+# Include only what's needed for pipeline build
+!tools/pipeline/**
+!backend/**
+!infrastructure/gcp/cloudbuild.yaml

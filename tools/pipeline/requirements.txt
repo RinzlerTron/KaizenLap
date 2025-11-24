@@ -1,0 +1,40 @@
+# Requirements for ML Processing Cloud Run Job
+
+# Google Cloud Libraries
+google-cloud-storage==2.14.0
+google-cloud-firestore==2.14.0
+google-auth==2.23.4  # Updated: 2.14.0 requires >=2.23.3
+google-api-python-client==2.108.0
+
+# FastAPI and database (for app imports)
+fastapi==0.104.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+sqlalchemy==2.0.0
+psycopg2-binary==2.9.9
+
+# HTTP client for LLM API calls
+httpx==0.25.0
+
+# Logging and utilities
+python-dotenv==1.0.0
+
+# CPU-only data processing libraries (replaces RAPIDS for CPU processing)
+# These are installed in Dockerfile but listed here for clarity
+# pandas - DataFrame operations
+# numpy - Numerical computations
+# scikit-learn - ML algorithms for analysis
+
+
+
+
+
+
+
+
+
+
+
+
+
+

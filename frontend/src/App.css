@@ -1,0 +1,453 @@
+/* App.css - KaizenLap Professional Racing UI */
+
+:root {
+  /* Color Palette */
+  --color-bg-dark: #1a1d23; /* Main background */
+  --color-bg-panel: #242830; /* Panel background */
+  --color-bg-element: #2d323b; /* Input/element background */
+
+  --color-primary-blue: #0091ff; /* Accent blue */
+  --color-primary-blue-glow: rgba(0, 145, 255, 0.4);
+  --color-accent-green: #44e59c; /* Faster/Positive */
+  --color-accent-red: #ff4757; /* Slower/Negative */
+  --color-accent-orange: #ffa800; /* Recommendation */
+
+  --color-text-primary: #f0f2f5; /* Primary text */
+  --color-text-secondary: #a0a6b1; /* Secondary/label text */
+  --color-text-disabled: #6b7280;
+
+  --color-border: #3a414d;
+  --color-border-focus: var(--color-primary-blue);
+  --color-shadow: rgba(0, 0, 0, 0.3);
+
+  /* Typography */
+  --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-family-mono: 'Roboto Mono', monospace;
+}
+
+/* Base Styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-bg-dark);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* App Layout */
+.App {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.App-header {
+  background: var(--color-bg-panel);
+  padding: 20px 30px;
+  color: var(--color-text-primary);
+  box-shadow: 0 4px 15px var(--color-shadow);
+  border-bottom: 3px solid var(--color-primary-blue);
+  z-index: 10;
+}
+
+.App-header h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+main {
+  flex-grow: 1;
+  display: grid;
+  grid-template-columns: 1fr 450px; /* Map takes most space, controls on right */
+  gap: 24px;
+  padding: 24px;
+  overflow: hidden;
+}
+
+.control-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-height: calc(100vh - 120px); /* Header and padding */
+  overflow-y: auto;
+}
+
+.map-panel {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px);
+}
+
+/* Generic Panel Styling */
+.panel {
+  background-color: var(--color-bg-panel);
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  padding: 24px;
+  box-shadow: 0 6px 20px var(--color-shadow);
+  overflow: visible;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: -24px -24px 24px -24px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Race Selector */
+.race-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.selector-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 30px;
+  align-items: center;
+  gap: 12px;
+}
+
+.selector-row label {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
+
+.selector-row select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg-element);
+  color: var(--color-text-primary);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23a0a6b1' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.7rem center;
+  background-repeat: no-repeat;
+  background-size: 1.2em 1.2em;
+}
+
+.selector-row select:hover:not(:disabled) {
+  border-color: var(--color-primary-blue);
+}
+
+.selector-row select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #202329;
+}
+
+.selector-row select:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-primary-blue-glow);
+}
+
+.spinner-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+}
+
+/* Spinner */
+.spinner {
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top: 3px solid var(--color-primary-blue);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.full-page-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+.full-page-spinner .spinner { width: 60px; height: 60px; border-width: 6px; }
+
+/* Error Message */
+.error-message {
+  background-color: rgba(255, 71, 87, 0.1);
+  border: 1px solid var(--color-accent-red);
+  color: var(--color-accent-red);
+  padding: 16px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+/* Playback Controls */
+.playback-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.playback-controls button {
+  padding: 12px 18px;
+  font-size: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg-element);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.playback-controls button:hover:not(:disabled) {
+  background-color: var(--color-primary-blue);
+  color: white;
+  border-color: var(--color-primary-blue);
+}
+
+.playback-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.play-pause-btn {
+  background-color: var(--color-primary-blue);
+  color: white;
+  border-color: var(--color-primary-blue);
+  min-width: 120px;
+}
+.play-pause-btn:hover:not(:disabled) {
+  background-color: #007ae5;
+}
+
+.section-counter {
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  letter-spacing: 1px;
+  font-family: var(--font-family-mono);
+}
+
+/* Section Panel */
+.section-panel h3 {
+  margin: 0;
+  color: var(--color-text-primary);
+  padding-bottom: 16px;
+  font-size: 24px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.section-panel h3 .section-name {
+  color: var(--color-primary-blue);
+}
+
+.time-comparison {
+  margin: 24px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.time-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  padding: 16px;
+  background: var(--color-bg-element);
+  border-radius: 8px;
+  border-left: 4px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.time-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-size: 15px;
+}
+
+.time-label-driver { border-left-color: var(--color-text-primary); }
+.time-label-best-lap { border-left-color: var(--color-primary-blue); }
+.time-label-best-possible { border-left-color: var(--color-accent-green); }
+
+.time-value {
+  font-size: 22px;
+  font-weight: 700;
+  font-family: var(--font-family-mono);
+  color: var(--color-text-primary);
+}
+
+.gap {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: var(--font-family-mono);
+  width: 90px;
+  text-align: right;
+}
+
+.gap-positive { color: var(--color-accent-red); }
+.gap-negative { color: var(--color-accent-green); }
+
+.recommendation {
+  margin-top: 24px;
+  padding: 20px;
+  background: rgba(255, 168, 0, 0.05);
+  border-left: 4px solid var(--color-accent-orange);
+  border-radius: 8px;
+}
+
+.recommendation h4 {
+  margin: 0 0 10px 0;
+  color: var(--color-accent-orange);
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.recommendation p {
+  color: var(--color-text-primary);
+  line-height: 1.7;
+  font-size: 15px;
+  margin: 0;
+}
+
+/* Skeleton Loader for Section Panel */
+.skeleton {
+  opacity: 0.7;
+  animation: shimmer 2s linear infinite;
+  background: linear-gradient(90deg, var(--color-bg-element) 25%, #383d47 50%, var(--color-bg-element) 75%);
+  background-size: 200% 100%;
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.skeleton-h3 { height: 30px; width: 60%; border-radius: 6px; margin-bottom: 24px; }
+.skeleton-row { height: 58px; width: 100%; border-radius: 8px; }
+.skeleton-rec { height: 120px; width: 100%; border-radius: 8px; margin-top: 24px; }
+
+/* Track Map */
+.track-map-container-enhanced {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--color-bg-panel);
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  min-height: 400px;
+}
+
+.track-map-svg-enhanced {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.track-outline-base, .track-surface {
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.track-outline-base { stroke: #111; stroke-width: 14; fill: none; }
+.track-surface { stroke: #454a54; stroke-width: 10; fill: none; }
+
+.section-boundary {
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+/* Section styling on map */
+.section-boundary.current {
+  fill: var(--color-primary-blue-glow);
+  stroke: var(--color-primary-blue);
+  stroke-width: 3;
+}
+.section-boundary.hovered:not(.current) {
+  fill: rgba(255, 255, 255, 0.1);
+  stroke: var(--color-text-secondary);
+  stroke-width: 2;
+}
+
+/* Car Marker */
+.current-position-marker {
+  fill: var(--color-accent-red);
+  stroke: white;
+  stroke-width: 2;
+  filter: drop-shadow(0 0 5px var(--color-accent-red));
+}
+
+/* Section Labels on Map */
+.track-section-label-rect {
+  transition: all 0.2s ease;
+  stroke: rgba(0,0,0,0.5);
+  stroke-width: 1px;
+}
+.track-section-label-text {
+  font-size: 13px;
+  font-weight: 700;
+  fill: white;
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: rgba(0,0,0,0.7);
+  stroke-width: 3px;
+  stroke-linecap: butt;
+  stroke-linejoin: round;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  main {
+    grid-template-columns: 380px 1fr;
+  }
+}
+
+@media (max-width: 992px) {
+  main {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+  .control-panel, .map-panel {
+    max-height: none;
+    height: auto;
+  }
+  .map-panel {
+    min-height: 50vh;
+  }
+}
