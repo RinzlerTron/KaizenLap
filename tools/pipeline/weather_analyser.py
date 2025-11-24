@@ -124,10 +124,12 @@ class WeatherImpactAnalyser(BaseAnalyser):
 
             for vehicle_id in vehicles:
                 vehicle_data = lap_sections_df[lap_sections_df['NUMBER'] == vehicle_id]
-                vehicle_laps = vehicle_data[' LAP_NUMBER'].unique()
+                # Fix column name - might have leading space
+                lap_num_col = 'LAP_NUMBER' if 'LAP_NUMBER' in vehicle_data.columns else ' LAP_NUMBER'
+                vehicle_laps = vehicle_data[lap_num_col].unique()
 
                 for lap_num in vehicle_laps:
-                    lap_data = vehicle_data[vehicle_data[' LAP_NUMBER'] == lap_num]
+                    lap_data = vehicle_data[vehicle_data[lap_num_col] == lap_num]
 
                     if lap_data.empty:
                         continue
@@ -143,12 +145,31 @@ class WeatherImpactAnalyser(BaseAnalyser):
                             except (ValueError, TypeError):
                                 pass
 
-                    laps_data.append({
+                    # Try to extract lap_start_time from ELAPSED column
+                    lap_start_time_seconds = None
+                    if 'ELAPSED' in lap_data.columns:
+                        elapsed_str = lap_data['ELAPSED'].iloc[0]
+                        if pd.notna(elapsed_str):
+                            try:
+                                # Parse "M:SS.mmm" or "MM:SS.mmm" format (e.g., "1:54.168")
+                                parts = str(elapsed_str).strip().split(':')
+                                if len(parts) == 2:
+                                    minutes = float(parts[0])
+                                    seconds = float(parts[1])
+                                    lap_start_time_seconds = minutes * 60 + seconds
+                            except (ValueError, IndexError, AttributeError):
+                                pass
+                    
+                    lap_dict = {
                         "lap_id": f"{vehicle_id}_{lap_num}",
                         "lap_number": int(lap_num),
                         "lap_time_ms": total_time * 1000,  # Convert seconds to ms
                         "vehicle_id": int(vehicle_id),
-                    })
+                    }
+                    if lap_start_time_seconds is not None:
+                        lap_dict["lap_start_time_seconds"] = lap_start_time_seconds
+                    
+                    laps_data.append(lap_dict)
 
         log.info(f"Loaded race data from CSV: {len(laps_data)} laps")
 
@@ -273,12 +294,20 @@ class WeatherImpactAnalyser(BaseAnalyser):
             if timestamp_col and timestamp_col in row.index:
                 timestamp_value = row[timestamp_col]
                 if pd.notna(timestamp_value):
-                    # Try to parse as datetime
+                    # Try to parse as datetime or Unix timestamp
                     try:
-                        if isinstance(timestamp_value, str):
-                            weather_point["timestamp"] = pd.to_datetime(timestamp_value).isoformat()
+                        # If it's a number (Unix timestamp), keep as-is for now
+                        if isinstance(timestamp_value, (int, float)):
+                            weather_point["timestamp"] = timestamp_value
+                        elif isinstance(timestamp_value, str):
+                            # Try parsing as ISO string first
+                            try:
+                                weather_point["timestamp"] = pd.to_datetime(timestamp_value).timestamp()
+                            except:
+                                # Try as Unix timestamp string
+                                weather_point["timestamp"] = float(timestamp_value)
                         else:
-                            weather_point["timestamp"] = pd.to_datetime(timestamp_value).isoformat()
+                            weather_point["timestamp"] = pd.to_datetime(timestamp_value).timestamp()
                     except:
                         weather_point["timestamp"] = str(timestamp_value)
             
@@ -332,24 +361,44 @@ class WeatherImpactAnalyser(BaseAnalyser):
         # --- IMPORTANT IMPROVEMENT ---
         # Original logic used a race-wide average. This version time-aligns weather
         # data to each lap for more accurate correlation.
-        if not weather_df.empty and 'timestamp' in weather_df.columns and 'lap_start_time' in laps_df.columns:
-            # Ensure data types are correct for merging
-            weather_df['timestamp'] = pd.to_datetime(weather_df['timestamp'], errors='coerce')
-            laps_df['lap_start_time'] = pd.to_datetime(laps_df['lap_start_time'], errors='coerce')
-
+        # Check if we have both weather timestamps and lap start times
+        has_weather_timestamps = not weather_df.empty and 'timestamp' in weather_df.columns
+        has_lap_times = 'lap_start_time' in laps_df.columns or 'lap_start_time_seconds' in laps_df.columns
+        
+        if has_weather_timestamps and has_lap_times:
+            # Convert weather timestamps to datetime
+            weather_df['timestamp'] = pd.to_datetime(weather_df['timestamp'], errors='coerce', unit='s')
             weather_df = weather_df.sort_values('timestamp').dropna(subset=['timestamp'])
-            laps_df = laps_df.sort_values('lap_start_time').dropna(subset=['lap_start_time'])
-
-            # Merge weather data based on nearest timestamp
-            laps_with_weather_df = pd.merge_asof(
-                left=laps_df,
-                right=weather_df,
-                left_on='lap_start_time',
-                right_on='timestamp',
-                direction='nearest'
-            )
+            
+            # Handle lap start times - could be datetime or seconds from race start
+            if 'lap_start_time' in laps_df.columns:
+                laps_df['lap_start_time'] = pd.to_datetime(laps_df['lap_start_time'], errors='coerce')
+                laps_df = laps_df.sort_values('lap_start_time').dropna(subset=['lap_start_time'])
+                time_col = 'lap_start_time'
+            elif 'lap_start_time_seconds' in laps_df.columns:
+                # Convert seconds to datetime by assuming race started at first weather timestamp
+                race_start_time = weather_df['timestamp'].iloc[0]
+                laps_df['lap_start_time'] = race_start_time + pd.to_timedelta(laps_df['lap_start_time_seconds'], unit='s')
+                laps_df = laps_df.sort_values('lap_start_time').dropna(subset=['lap_start_time'])
+                time_col = 'lap_start_time'
+            else:
+                time_col = None
+            
+            if time_col:
+                # Merge weather data based on nearest timestamp
+                laps_with_weather_df = pd.merge_asof(
+                    left=laps_df,
+                    right=weather_df,
+                    left_on=time_col,
+                    right_on='timestamp',
+                    direction='nearest'
+                )
+            else:
+                log.warning("Could not determine lap start time column. Providing basic weather summary.")
+                return self._provide_basic_weather_summary(weather_df)
         else:
             log.warning("Not enough data for time-aligned weather analysis. Providing basic weather summary instead.")
+            log.debug(f"has_weather_timestamps: {has_weather_timestamps}, has_lap_times: {has_lap_times}")
             # Provide basic weather summary when time-aligned analysis isn't possible
             return self._provide_basic_weather_summary(weather_df)
         
@@ -385,25 +434,43 @@ class WeatherImpactAnalyser(BaseAnalyser):
                         "strength": "strong" if abs(corr_value) > ml_config.weather_thresholds["strong_correlation"] else "moderate"
                     })
                     
+                    # Get actual weather range for this race
+                    weather_range = laps_with_weather_df[col].max() - laps_with_weather_df[col].min()
+                    weather_min = laps_with_weather_df[col].min()
+                    weather_max = laps_with_weather_df[col].max()
+                    
+                    # Estimate impact: correlation * weather_range gives approximate lap time impact
+                    # For example: corr=0.4, temp_range=2°C means ~0.8s impact per 2°C change
+                    strength_word = "strong" if abs(corr_value) > ml_config.weather_thresholds["strong_correlation"] else "moderate"
+                    
                     if col == 'track_temp_celsius':
                         if corr_value > ml_config.weather_thresholds["significant_correlation"]:
-                            interpretation.append("Higher track temperatures correlate with slower lap times, likely due to tire overheating and reduced grip.")
+                            interpretation.append(f"Track temperature showed {strength_word} positive correlation (r={corr_value:.2f}) with lap times. Track temp ranged from {weather_min:.1f}°C to {weather_max:.1f}°C ({weather_range:.1f}°C range). Higher track temperatures correlate with slower lap times, likely due to tire overheating and reduced grip.")
                         elif corr_value < -ml_config.weather_thresholds["significant_correlation"]:
-                            interpretation.append("Lower track temperatures correlate with slower lap times, possibly due to difficulty getting tires into optimal operating window.")
+                            interpretation.append(f"Track temperature showed {strength_word} negative correlation (r={corr_value:.2f}) with lap times. Track temp ranged from {weather_min:.1f}°C to {weather_max:.1f}°C ({weather_range:.1f}°C range). Lower track temperatures correlate with slower lap times, possibly due to difficulty getting tires into optimal operating window.")
                     elif col == 'air_temp_celsius':
                         if corr_value > ml_config.weather_thresholds["significant_correlation"]:
-                            interpretation.append("Higher air temperatures correlate with slower lap times, affecting engine performance and tire grip.")
+                            interpretation.append(f"Air temperature showed {strength_word} positive correlation (r={corr_value:.2f}) with lap times. Air temp ranged from {weather_min:.1f}°C to {weather_max:.1f}°C ({weather_range:.1f}°C range). Higher air temperatures correlate with slower lap times, affecting engine performance and tire grip.")
                         elif corr_value < -ml_config.weather_thresholds["significant_correlation"]:
-                            interpretation.append("Lower air temperatures correlate with slower lap times, affecting tire warm-up and engine efficiency.")
+                            interpretation.append(f"Air temperature showed {strength_word} negative correlation (r={corr_value:.2f}) with lap times. Air temp ranged from {weather_min:.1f}°C to {weather_max:.1f}°C ({weather_range:.1f}°C range). Lower air temperatures correlate with slower lap times, affecting tire warm-up and engine efficiency.")
                     elif col == 'humidity_percent':
                         if corr_value > ml_config.weather_thresholds["significant_correlation"]:
-                            interpretation.append("Higher humidity correlates with slower lap times, affecting engine power and aerodynamics.")
+                            interpretation.append(f"Humidity showed {strength_word} positive correlation (r={corr_value:.2f}) with lap times. Humidity ranged from {weather_min:.1f}% to {weather_max:.1f}% ({weather_range:.1f}% range). Higher humidity correlates with slower lap times, affecting engine power and aerodynamics.")
                     elif col == 'wind_speed':
                         if abs(corr_value) > ml_config.weather_thresholds["significant_correlation"]:
-                            interpretation.append(f"Wind speed shows {'positive' if corr_value > 0 else 'negative'} correlation with lap times, affecting aerodynamics and top speed.")
+                            direction = "positive" if corr_value > 0 else "negative"
+                            interpretation.append(f"Wind speed showed {strength_word} {direction} correlation (r={corr_value:.2f}) with lap times. Wind speed ranged from {weather_min:.1f} to {weather_max:.1f} km/h ({weather_range:.1f} km/h range). Wind speed affects aerodynamics and top speed.")
         
         if not interpretation:
-            interpretation.append("Weather conditions show minimal correlation with lap times in this dataset. Performance appears to be more driver/setup dependent.")
+            # Provide more context even when correlations are weak
+            if not weather_df.empty:
+                temp_range = weather_df['air_temp_celsius'].max() - weather_df['air_temp_celsius'].min() if 'air_temp_celsius' in weather_df.columns else 0
+                if temp_range < 1.0:
+                    interpretation.append(f"Weather conditions were relatively stable during this race (air temp varied by {temp_range:.1f}°C). No significant correlation found between weather and lap times - performance appears to be more driver/setup dependent.")
+                else:
+                    interpretation.append(f"Weather conditions varied during this race (air temp range: {temp_range:.1f}°C), but no significant correlation was found with lap times. Performance appears to be more driver/setup dependent rather than weather-sensitive.")
+            else:
+                interpretation.append("Weather conditions show minimal correlation with lap times in this dataset. Performance appears to be more driver/setup dependent.")
         
         return {
             "correlations": correlations,
