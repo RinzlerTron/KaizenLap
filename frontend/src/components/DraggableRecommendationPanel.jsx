@@ -439,12 +439,18 @@ const DraggableRecommendationPanel = ({
                       </Box>
                     )}
                     
-                    {((consistencyAnalysis.consistency_score !== undefined && consistencyAnalysis.consistency_score !== null && !isNaN(consistencyAnalysis.consistency_score)) ||
-                      (data.consistency_score !== undefined && data.consistency_score !== null && !isNaN(data.consistency_score))) && (
-                      <Typography variant="body2" sx={{ mb: 1 }}>
-                        <strong>Consistency Score:</strong> {(Number(consistencyAnalysis.consistency_score || data.consistency_score) * 100).toFixed(1)}%
-                      </Typography>
-                    )}
+                    {(() => {
+                      const score = consistencyAnalysis.consistency_score !== undefined ? consistencyAnalysis.consistency_score : (data.consistency_score !== undefined ? data.consistency_score : undefined);
+                      const scoreNum = score !== undefined && score !== null ? Number(score) : NaN;
+                      if (!isNaN(scoreNum) && scoreNum >= 0) {
+                        return (
+                          <Typography variant="body2" sx={{ mb: 1 }}>
+                            <strong>Consistency Score:</strong> {(scoreNum * 100).toFixed(1)}%
+                          </Typography>
+                        );
+                      }
+                      return null;
+                    })()}
                     
                     {((consistencyAnalysis.min_lap_time_s !== undefined && consistencyAnalysis.max_lap_time_s !== undefined) ||
                       (data.min_lap_time_s !== undefined && data.max_lap_time_s !== undefined)) && (

@@ -282,13 +282,20 @@ def get_weather_recommendation_from_firestore(race_id: int):
             elif isinstance(analysis, dict):
                 analysis_text = analysis.get('interpretation') or analysis.get('summary') or ''
                 if not analysis_text:
-                    analysis_text = 'Weather analysis available. See structured data for details.'
+                    analysis_text = ''
+                # Remove disclaimer text that makes it look incomplete
+                if 'While detailed correlation analysis requires time-aligned lap data' in analysis_text:
+                    analysis_text = ''
             else:
                 analysis_text = str(analysis) if analysis else ''
             
             # Ensure we always return a string
             if not isinstance(analysis_text, str):
                 analysis_text = str(analysis_text) if analysis_text else ''
+            
+            # Don't return basic weather summary as recommendation_text - that's shown separately
+            if 'Air temperature averaged' in analysis_text and 'While detailed correlation' in analysis_text:
+                analysis_text = ''
             
             return {
                 'recommendation_type': 'weather',

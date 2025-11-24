@@ -299,10 +299,14 @@ class PatternAnalyser(BaseAnalyser):
         
         # Calculate consistency score (0-10, higher = more consistent)
         # Lower std deviation = higher consistency
-        if consistency_metrics["std_lap_time_s"] > 0:
+        std_lap_time = consistency_metrics["std_lap_time_s"]
+        if std_lap_time > 0 and not np.isnan(std_lap_time):
             # Normalize: std of 0.1s = score 10, std of 2.0s = score 0
-            consistency_score = max(0, 10.0 - (consistency_metrics["std_lap_time_s"] * ml_config.pattern_scores["consistency_std_multiplier"]))
+            consistency_score = max(0, 10.0 - (std_lap_time * ml_config.pattern_scores["consistency_std_multiplier"]))
             consistency_metrics["consistency_score"] = float(consistency_score)
+        else:
+            # If std is 0 or NaN (single lap), set score to None instead of 0
+            consistency_metrics["consistency_score"] = None
         
         # Analyze improvement trend
         if len(lap_times) >= ml_config.analysis_params["min_laps_for_pattern_trend"]:
