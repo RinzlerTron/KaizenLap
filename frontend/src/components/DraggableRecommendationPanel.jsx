@@ -325,19 +325,23 @@ const DraggableRecommendationPanel = ({
               // Handle Weather Impact data
               if (recommendationType === 'weather') {
                 const weatherSummary = recommendation.weather_summary || {};
+                const bestPerformer = recommendation.best_performer || {};
                 
                 return (
                   <Box sx={{ mt: 2 }}>
                     <Divider sx={{ my: 2 }} />
                     
-                    {/* ML Analysis Interpretation */}
-                    {data.interpretation && typeof data.interpretation === 'string' && (
-                      <Box sx={{ mb: 2 }}>
+                    {/* ML Analysis Interpretation - Show prominently if available */}
+                    {recommendation.recommendation_text && recommendation.recommendation_text.trim() && (
+                      <Box sx={{ mb: 3 }}>
                         <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, color: 'info.main' }}>
                           Weather Impact Analysis:
                         </Typography>
-                        <Typography variant="body2" sx={{ fontStyle: 'italic', lineHeight: 1.6 }}>
-                          {data.interpretation}
+                        <Typography variant="body2" sx={{ lineHeight: 1.6, color: 'text.primary' }}>
+                          {recommendation.recommendation_text}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, fontStyle: 'italic' }}>
+                          Analysis based on all drivers' performance in this race
                         </Typography>
                       </Box>
                     )}
@@ -427,9 +431,25 @@ const DraggableRecommendationPanel = ({
                     )}
                     
                     {data.consistency_score !== undefined && (
-                      <Typography variant="body2" sx={{ mb: 2 }}>
+                      <Typography variant="body2" sx={{ mb: 1 }}>
                         <strong>Consistency Score:</strong> {(Number(data.consistency_score) * 100).toFixed(1)}%
                       </Typography>
+                    )}
+                    
+                    {data.min_lap_time_s !== undefined && data.max_lap_time_s !== undefined && (
+                      <Box sx={{ mb: 2, mt: 1, p: 1.5, bgcolor: 'background.default', borderRadius: 1 }}>
+                        <Typography variant="body2" sx={{ mb: 0.5 }}>
+                          <strong>Best Lap:</strong> {Number(data.min_lap_time_s).toFixed(3)}s
+                        </Typography>
+                        <Typography variant="body2">
+                          <strong>Worst Lap:</strong> {Number(data.max_lap_time_s).toFixed(3)}s
+                        </Typography>
+                        {data.min_lap_time_s && data.max_lap_time_s && (
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                            Range: {(Number(data.max_lap_time_s) - Number(data.min_lap_time_s)).toFixed(3)}s
+                          </Typography>
+                        )}
+                      </Box>
                     )}
                     
                     {/* Trends */}
@@ -479,11 +499,52 @@ const DraggableRecommendationPanel = ({
                       </Box>
                     )}
                     
+                    {/* Section Analysis Details */}
+                    {sectionPatterns.section_analysis && typeof sectionPatterns.section_analysis === 'object' && Object.keys(sectionPatterns.section_analysis).length > 0 && (
+                      <Box sx={{ mt: 2, mb: 2 }}>
+                        <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
+                          Section-by-Section Analysis:
+                        </Typography>
+                        {Object.entries(sectionPatterns.section_analysis).map(([sectionName, sectionData]) => {
+                          if (!sectionData || typeof sectionData !== 'object') return null;
+                          const consistency = sectionData.consistency || 'unknown';
+                          const consistencyColor = consistency === 'high' ? 'success.main' : consistency === 'moderate' ? 'warning.main' : 'error.main';
+                          
+                          return (
+                            <Box key={sectionName} sx={{ mb: 1.5, pl: 2, borderLeft: 2, borderColor: consistencyColor }}>
+                              <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                                {String(sectionName)} ({consistency} consistency)
+                              </Typography>
+                              {sectionData.mean_time_s !== undefined && (
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                  Avg: {Number(sectionData.mean_time_s).toFixed(3)}s
+                                  {sectionData.std_time_s !== undefined && ` (std: ${Number(sectionData.std_time_s).toFixed(3)}s)`}
+                                  {sectionData.min_time_s !== undefined && sectionData.max_time_s !== undefined && 
+                                    ` | Range: ${Number(sectionData.min_time_s).toFixed(3)}-${Number(sectionData.max_time_s).toFixed(3)}s`}
+                                </Typography>
+                              )}
+                            </Box>
+                          );
+                        })}
+                      </Box>
+                    )}
+                    
                     {/* Consistency Analysis Details */}
                     {consistencyAnalysis.std_lap_time_s !== undefined && (
                       <Box sx={{ mt: 2 }}>
                         <Typography variant="caption" color="text.secondary">
-                          Consistency analysis based on {consistencyAnalysis.std_lap_time_s !== undefined ? 'lap time variance' : 'performance data'}
+                          Consistency analysis based on lap time variance
+                        </Typography>
+                      </Box>
+                    )}
+                    
+                    {/* Show message if no detailed insights available */}
+                    {(!sectionPatterns.strengths || sectionPatterns.strengths.length === 0) && 
+                     (!sectionPatterns.weaknesses || sectionPatterns.weaknesses.length === 0) && 
+                     (!trends.consistency_trend && !trends.improvement_trend) && (
+                      <Box sx={{ mt: 2, p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                          For more detailed coaching insights, check the "Coaching Insights" panel which provides AI-generated analysis with specific recommendations.
                         </Typography>
                       </Box>
                     )}

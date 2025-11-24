@@ -295,6 +295,7 @@ def get_weather_recommendation_from_firestore(race_id: int):
                 'recommendation_text': analysis_text,
                 'structured_data': data.get('structured_data', {}),
                 'weather_summary': data.get('weather_summary', {}),
+                'best_performer': data.get('best_performer', {}),
                 'confidence_score': 0.88,
                 'model_version': 'v1.0'
             }
