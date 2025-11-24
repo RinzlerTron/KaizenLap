@@ -39,8 +39,11 @@ class Settings(BaseSettings):
     USE_GPU: bool = os.getenv("USE_GPU", "true").lower() == "true"
     
     # Cloud Run
-    CLOUD_RUN_REGION: str = os.getenv("CLOUD_RUN_REGION", "europe-west1")
+    CLOUD_RUN_REGION: str = os.getenv("CLOUD_RUN_REGION", "us-west2")
     PROJECT_ID: str = os.getenv("GOOGLE_CLOUD_PROJECT", "")
+    
+    # Firestore
+    FIRESTORE_DATABASE_ID: str = os.getenv("FIRESTORE_DATABASE_ID", "kaizenlap-us")
     
     # CORS (allow localhost for development, * for bundled deployment)
     CORS_ORIGINS: List[str] = [

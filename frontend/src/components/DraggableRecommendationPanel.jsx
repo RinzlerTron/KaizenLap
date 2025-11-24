@@ -328,74 +328,95 @@ const DraggableRecommendationPanel = ({
                 const weatherSummary = recommendation.weather_summary || {};
                 const bestPerformer = recommendation.best_performer || {};
                 
+                // Check if we have meaningful data
+                const hasWeatherData = weatherSummary.avg_air_temp_celsius !== undefined || 
+                                      weatherSummary.avg_humidity_percent !== undefined || 
+                                      weatherSummary.avg_wind_speed !== undefined;
+                const hasAnalysis = recommendation.recommendation_text && 
+                                   recommendation.recommendation_text.trim() && 
+                                   recommendation.recommendation_text.length > 50 &&
+                                   !recommendation.recommendation_text.includes("While detailed correlation analysis requires time-aligned lap data");
+                const hasNoData = !hasWeatherData && !hasAnalysis;
+                
                 return (
                   <Box sx={{ mt: 2 }}>
                     <Divider sx={{ my: 2 }} />
                     
-                    {/* ML Analysis Interpretation - Show prominently if available (only if it's actual correlation analysis, not basic summary) */}
-                    {recommendation.recommendation_text && 
-                     recommendation.recommendation_text.trim() && 
-                     !recommendation.recommendation_text.includes("While detailed correlation analysis requires time-aligned lap data") &&
-                     !recommendation.recommendation_text.includes("Air temperature averaged") && (
-                      <Box sx={{ mb: 3 }}>
-                        <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, color: 'info.main' }}>
-                          Weather Impact Analysis:
-                        </Typography>
-                        <Typography variant="body2" sx={{ lineHeight: 1.6, color: 'text.primary' }}>
-                          {recommendation.recommendation_text}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, fontStyle: 'italic' }}>
-                          Analysis based on all drivers' performance in this race
+                    {hasNoData ? (
+                      // No data available - grey out and show message
+                      <Box sx={{ 
+                        p: 2, 
+                        backgroundColor: 'rgba(128, 128, 128, 0.1)', 
+                        borderRadius: 1,
+                        opacity: 0.6
+                      }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                          Weather Impact Analysis is not available for this race as weather data was not collected during the race.
                         </Typography>
                       </Box>
-                    )}
-                    
-                    {/* Weather Summary from ML Processing */}
-                    {(weatherSummary.avg_air_temp_celsius !== undefined || 
-                      weatherSummary.avg_humidity_percent !== undefined || 
-                      weatherSummary.avg_wind_speed !== undefined) && (
-                      <Box sx={{ mb: 2 }}>
-                        <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
-                          Weather Conditions:
-                        </Typography>
-                        {weatherSummary.avg_air_temp_celsius !== undefined && (
-                          <Typography variant="body2" sx={{ pl: 2, mb: 0.5 }}>
-                            • <strong>Air Temperature:</strong> {Number(weatherSummary.avg_air_temp_celsius).toFixed(1)}°C
-                            {weatherSummary.min_air_temp_celsius !== undefined && weatherSummary.max_air_temp_celsius !== undefined && (
-                              <span> (range: {Number(weatherSummary.min_air_temp_celsius).toFixed(1)}-{Number(weatherSummary.max_air_temp_celsius).toFixed(1)}°C)</span>
+                    ) : (
+                      <>
+                        {/* ML Analysis Interpretation - Show prominently if available (only if it's actual correlation analysis, not basic summary) */}
+                        {hasAnalysis && (
+                          <Box sx={{ mb: 3 }}>
+                            <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, color: 'info.main' }}>
+                              Weather Impact Analysis:
+                            </Typography>
+                            <Typography variant="body2" sx={{ lineHeight: 1.6, color: 'text.primary' }}>
+                              {recommendation.recommendation_text}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, fontStyle: 'italic' }}>
+                              Analysis based on all drivers' performance in this race
+                            </Typography>
+                          </Box>
+                        )}
+                        
+                        {/* Weather Summary from ML Processing */}
+                        {hasWeatherData && (
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
+                              Weather Conditions:
+                            </Typography>
+                            {weatherSummary.avg_air_temp_celsius !== undefined && (
+                              <Typography variant="body2" sx={{ pl: 2, mb: 0.5 }}>
+                                • <strong>Air Temperature:</strong> {Number(weatherSummary.avg_air_temp_celsius).toFixed(1)}°C
+                                {weatherSummary.min_air_temp_celsius !== undefined && weatherSummary.max_air_temp_celsius !== undefined && (
+                                  <span> (range: {Number(weatherSummary.min_air_temp_celsius).toFixed(1)}-{Number(weatherSummary.max_air_temp_celsius).toFixed(1)}°C)</span>
+                                )}
+                              </Typography>
                             )}
-                          </Typography>
-                        )}
-                        {weatherSummary.avg_track_temp_celsius !== undefined && (
-                          <Typography variant="body2" sx={{ pl: 2, mb: 0.5 }}>
-                            • <strong>Track Temperature:</strong> {Number(weatherSummary.avg_track_temp_celsius).toFixed(1)}°C
-                          </Typography>
-                        )}
-                        {weatherSummary.avg_humidity_percent !== undefined && (
-                          <Typography variant="body2" sx={{ pl: 2, mb: 0.5 }}>
-                            • <strong>Humidity:</strong> {Number(weatherSummary.avg_humidity_percent).toFixed(1)}%
-                          </Typography>
-                        )}
-                        {weatherSummary.avg_wind_speed !== undefined && (
-                          <Typography variant="body2" sx={{ pl: 2, mb: 0.5 }}>
-                            • <strong>Wind Speed:</strong> {Number(weatherSummary.avg_wind_speed).toFixed(1)} km/h
-                            {weatherSummary.max_wind_speed !== undefined && (
-                              <span> (max: {Number(weatherSummary.max_wind_speed).toFixed(1)} km/h)</span>
+                            {weatherSummary.avg_track_temp_celsius !== undefined && (
+                              <Typography variant="body2" sx={{ pl: 2, mb: 0.5 }}>
+                                • <strong>Track Temperature:</strong> {Number(weatherSummary.avg_track_temp_celsius).toFixed(1)}°C
+                              </Typography>
                             )}
+                            {weatherSummary.avg_humidity_percent !== undefined && (
+                              <Typography variant="body2" sx={{ pl: 2, mb: 0.5 }}>
+                                • <strong>Humidity:</strong> {Number(weatherSummary.avg_humidity_percent).toFixed(1)}%
+                              </Typography>
+                            )}
+                            {weatherSummary.avg_wind_speed !== undefined && (
+                              <Typography variant="body2" sx={{ pl: 2, mb: 0.5 }}>
+                                • <strong>Wind Speed:</strong> {Number(weatherSummary.avg_wind_speed).toFixed(1)} km/h
+                                {weatherSummary.max_wind_speed !== undefined && (
+                                  <span> (max: {Number(weatherSummary.max_wind_speed).toFixed(1)} km/h)</span>
+                                )}
+                              </Typography>
+                            )}
+                            {weatherSummary.rain_detected !== undefined && weatherSummary.rain_detected === false && (
+                              <Typography variant="body2" sx={{ pl: 2, mb: 0.5 }}>
+                                • <strong>Rain:</strong> No rain detected during the race
+                              </Typography>
+                            )}
+                          </Box>
+                        )}
+                        
+                        {data.data_points !== undefined && (
+                          <Typography variant="caption" color="text.secondary">
+                            Based on {String(data.data_points)} data points
                           </Typography>
                         )}
-                        {weatherSummary.rain_detected !== undefined && weatherSummary.rain_detected === false && (
-                          <Typography variant="body2" sx={{ pl: 2, mb: 0.5 }}>
-                            • <strong>Rain:</strong> No rain detected during the race
-                          </Typography>
-                        )}
-                      </Box>
-                    )}
-                    
-                    {data.data_points !== undefined && (
-                      <Typography variant="caption" color="text.secondary">
-                        Based on {String(data.data_points)} data points
-                      </Typography>
+                      </>
                     )}
                   </Box>
                 );
@@ -442,7 +463,8 @@ const DraggableRecommendationPanel = ({
                     {(() => {
                       const score = consistencyAnalysis.consistency_score !== undefined ? consistencyAnalysis.consistency_score : (data.consistency_score !== undefined ? data.consistency_score : undefined);
                       const scoreNum = score !== undefined && score !== null ? Number(score) : NaN;
-                      if (!isNaN(scoreNum) && scoreNum >= 0) {
+                      // Only show if score is meaningful (> 0.1% to avoid showing 0.0%)
+                      if (!isNaN(scoreNum) && scoreNum > 0.001) {
                         return (
                           <Typography variant="body2" sx={{ mb: 1 }}>
                             <strong>Consistency Score:</strong> {(scoreNum * 100).toFixed(1)}%

@@ -3,7 +3,7 @@
 
 param(
     [string]$ProjectId = $env:GCP_PROJECT_ID,
-    [string]$Region = "europe-west1",
+    [string]$Region = "us-west2",
     [string]$ServiceName = "kaizenlap"
 )
 
@@ -23,13 +23,18 @@ if (-not $ProjectId) {
     exit 1
 }
 
-$GcsBucket = "$ProjectId-data"
+# Default to new us-west2 bucket name (can be overridden via env var)
+$GcsBucket = if ($env:GCS_BUCKET_NAME) { $env:GCS_BUCKET_NAME } else { "$ProjectId-data" }
+
+# Firestore database ID (defaults to US database)
+$FirestoreDatabaseId = if ($env:FIRESTORE_DATABASE_ID) { $env:FIRESTORE_DATABASE_ID } else { "kaizenlap-us" }
 
 Write-Host "Configuration:" -ForegroundColor Cyan
 Write-Host "  Project ID:   $ProjectId"
 Write-Host "  Region:       $Region"
 Write-Host "  Service Name: $ServiceName"
 Write-Host "  GCS Bucket:   $GcsBucket"
+Write-Host "  Firestore DB: $FirestoreDatabaseId"
 Write-Host ""
 
 # Confirm deployment
@@ -58,7 +63,7 @@ gcloud run deploy $ServiceName `
     --memory=2Gi `
     --timeout=60s `
     --concurrency=80 `
-    --set-env-vars="GOOGLE_CLOUD_PROJECT=$ProjectId,GCS_BUCKET_NAME=$GcsBucket,USE_LOCAL_FILES=false"
+    --set-env-vars="GOOGLE_CLOUD_PROJECT=$ProjectId,GCS_BUCKET_NAME=$GcsBucket,USE_LOCAL_FILES=false,FIRESTORE_DATABASE_ID=$FirestoreDatabaseId"
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host ""

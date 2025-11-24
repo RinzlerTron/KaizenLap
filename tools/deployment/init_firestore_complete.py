@@ -8,13 +8,15 @@ import os
 from google.cloud import firestore
 
 PROJECT_ID = os.getenv('GOOGLE_CLOUD_PROJECT') or os.getenv('FIRESTORE_PROJECT_ID', 'your-project-id')
+DATABASE_ID = os.getenv('FIRESTORE_DATABASE_ID', 'kaizenlap-us')
 
 def seed_firestore():
     """Seed all tracks and races."""
     print("Initializing Firestore...")
     print(f"   Project: {PROJECT_ID}")
+    print(f"   Database: {DATABASE_ID}")
     
-    db = firestore.Client(project=PROJECT_ID)
+    db = firestore.Client(project=PROJECT_ID, database=DATABASE_ID)
     
     # All 7 tracks
     tracks = [

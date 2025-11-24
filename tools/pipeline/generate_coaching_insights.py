@@ -25,7 +25,8 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 log = logging.getLogger(__name__)
 
 PROJECT_ID = os.getenv('GOOGLE_CLOUD_PROJECT') or os.getenv('FIRESTORE_PROJECT_ID', 'your-project-id')
-db = firestore.Client(project=PROJECT_ID)
+DATABASE_ID = os.getenv('FIRESTORE_DATABASE_ID', 'kaizenlap-us')
+db = firestore.Client(project=PROJECT_ID, database=DATABASE_ID)
 
 def get_best_case_for_race(race_id):
     """Get best case composite for race (for comparison)."""

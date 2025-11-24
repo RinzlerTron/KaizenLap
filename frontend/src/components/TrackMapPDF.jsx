@@ -33,7 +33,12 @@ function TrackMap({ trackId, currentSectionName, onSectionClick }) {
         // Check if using PDF image method
         if (response.data.rendering_method === 'pdf_image_direct' && response.data.image_url) {
           console.log('Using PDF image:', response.data.image_url);
-          setImageUrl(`${API_URL}${response.data.image_url}`);
+          // If image_url is already a full URL (starts with http), use it directly
+          // Otherwise, prepend API_URL for relative paths
+          const url = response.data.image_url.startsWith('http') 
+            ? response.data.image_url 
+            : `${API_URL}${response.data.image_url}`;
+          setImageUrl(url);
           setTrackSections(response.data.sections || []);
         } else {
           // Fallback to SVG method

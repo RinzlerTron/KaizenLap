@@ -55,9 +55,12 @@ class BaseAnalyser:
             if not project_id:
                 raise ValueError("FIRESTORE_PROJECT_ID or PROJECT_ID must be set.")
             
+            # Get database ID from environment or default to US database
+            database_id = os.getenv("FIRESTORE_DATABASE_ID", "kaizenlap-us")
+            
             try:
-                log.info(f"Initializing Firestore client for project: {project_id}")
-                self.firestore_client = firestore.Client(project=project_id)
+                log.info(f"Initializing Firestore client for project: {project_id} (database: {database_id})")
+                self.firestore_client = firestore.Client(project=project_id, database=database_id)
             except DefaultCredentialsError as e:
                 log.error(f"Firestore Authentication Error: {e}")
                 raise

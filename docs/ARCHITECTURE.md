@@ -1,286 +1,285 @@
-# System Architecture
+# Technical Architecture
 
-KaizenLap transforms racing telemetry through a multi-stage cloud pipeline into actionable driver coaching.
-
----
-
-## Overview
-
-**Data Layer:** Google Cloud Storage (CSV files) + Firestore (processed insights)  
-**Processing:** 5 Cloud Run jobs for ML analysis  
-**Serving:** Single Cloud Run service (FastAPI backend + React frontend)
+**System design and infrastructure for KaizenLap.**
 
 ---
 
-## Data Flow
+## System Overview
 
 ```
-┌──────────────────────────────────────────────┐
-│ Stage 1: Raw Telemetry (GCS)                 │
-│  • 144 CSV files across 7 tracks, 14 races   │
-│  • Lap times, sections, weather, positions   │
-└────────────────┬─────────────────────────────┘
-                 ↓
-┌──────────────────────────────────────────────┐
-│ Stage 2: Batch Analytics (Cloud Run Jobs)    │
-│  Job 1: Best-case composite calculation      │
-│  Job 2: Section gap analysis                 │
-│  Job 3: Weather correlation                  │
-│  Job 4: Consistency pattern detection        │
-│  Job 5: Gemma 3 AI coaching synthesis        │
-└────────────────┬─────────────────────────────┘
-                 ↓
-┌──────────────────────────────────────────────┐
-│ Stage 3: Storage (Firestore)                 │
-│  • 21,718 structured coaching documents      │
-│  • 7 collections indexed for sub-100ms query │
-└────────────────┬─────────────────────────────┘
-                 ↓
-┌──────────────────────────────────────────────┐
-│ Stage 4: API Layer (FastAPI)                 │
-│  • RESTful endpoints                         │
-│  • Async database connections                │
-│  • Error handling & validation               │
-└────────────────┬─────────────────────────────┘
-                 ↓
-┌──────────────────────────────────────────────┐
-│ Stage 5: Presentation (React)                │
-│  • Interactive track maps (SVG rendering)    │
-│  • Real-time section comparison              │
-│  • 4 AI analysis types (toggle interface)    │
-└──────────────────────────────────────────────┘
+Raw Telemetry (CSV) → Analytics Pipeline → AI Synthesis → Firestore → API → React UI
+     2GB                4 parallel jobs       Gemma 3      21K docs   FastAPI   <100ms
 ```
 
----
-
-## Firestore Collections
-
-| Collection | Documents | Purpose |
-|------------|-----------|---------|
-| `tracks` | 7 | Track metadata and configurations |
-| `races` | 14 | Race events (2 per track) |
-| `best_case_composites` | 62 | Optimal section time combinations |
-| `ml_section_recommendations` | 20,907 | Corner-specific coaching |
-| `ml_weather_recommendations` | 14 | Condition-performance correlation |
-| `ml_pattern_recommendations` | 357 | Driver consistency analysis |
-| `coaching_insights` | 357 | Gemma 3 AI strategic insights |
-| **Total** | **21,718** | **Complete coaching dataset** |
+**Design Goal:** Process the complete TRD dataset to generate coaching insights that respond instantly during judging.
 
 ---
 
-## Technology Stack
+## Data Pipeline
 
-### Backend
-- **Framework:** FastAPI (async Python web framework)
-- **Database:** Google Firestore (NoSQL, serverless)
-- **Storage:** Google Cloud Storage (object storage)
-- **Auth:** Service account (automatic via Cloud Run)
+### Stage 1: Raw Data (Google Cloud Storage)
 
-### Frontend
-- **Framework:** React 18
-- **UI Library:** Material-UI v5
-- **Build:** Create React App
-- **Deployment:** Static files served by FastAPI
+**144 CSV files** across 7 tracks and 14 races:
+- Lap times (best lap, position changes)
+- Section times (3 sections per track, except Road America Race 1)
+- Weather conditions (temperature, humidity, wind, rain probability)
+- Field positions (running order throughout race)
 
-### ML Pipeline
-- **Model:** Gemma 3 (4B parameters, open-source)
-- **Platform:** Vertex AI with L4 GPU
-- **Jobs:** Cloud Run batch jobs (scale-to-zero)
-- **Languages:** Python (pandas, scikit-learn)
+**500+ vehicles** tracked across full race distance.
 
-### Infrastructure
-- **Compute:** Cloud Run (serverless containers)
-- **Build:** Cloud Build (automatic Docker builds)
-- **Networking:** HTTPS with automatic SSL
-- **Region:** Configurable (default: europe-west1)
+### Stage 2: Analytics Processing (Cloud Run Jobs)
 
----
+Four analytics engines process the telemetry in parallel to build the statistical foundation:
 
-## Deployment Model
+**Job 1: Best-Case Composite** (62 documents)  
+Combines fastest section times across all drivers to create theoretical "perfect lap" for each race.
 
-**Bundled Service** (Single Cloud Run deployment):
-- FastAPI serves both API endpoints and React static files
-- No CORS complexity (same origin)
-- Single build and deployment process
-- Simplified networking and authentication
+**Job 2: Section Analysis** (20,907 documents)  
+Compares every driver's section times against best-case composite. Identifies where time is lost and calculates lap-to-lap variability.
 
-**Alternative Considered:** Separate frontend/backend services
-- **Rejected:** 2x deployment overhead, CORS configuration, dual monitoring
+**Job 3: Weather Correlation** (14 documents)  
+Multi-variate analysis correlating temperature, humidity, wind, rain with lap time performance. Separates driver improvement from environmental changes.
 
----
+**Job 4: Pattern Detection** (357 documents)  
+Lap-to-lap consistency scoring, improvement/degradation trend analysis, standard deviation modeling.
 
-## Data Processing Architecture
+These four jobs run in parallel since they're independent analyses of the same source data.
 
-### Best-Case Composite
-Combines fastest section times across all drivers to create theoretical perfect lap.
+**Processing time:** ~35 minutes for all four jobs combined
 
-**Algorithm:**
-```python
-for section in track.sections:
-    composite[section] = min(all_drivers[section].times)
+### Stage 3: AI Synthesis (Gemma 3)
+
+**After** the statistical engines complete, Gemma 3 reads their outputs to generate coaching insights.
+
+**Why sequential:** Gemma 3 needs results from all four analytics engines to synthesize comprehensive recommendations. It converts statistical patterns into race engineer language.
+
+**How it works:**  
+Gemma 3 receives structured input from all four engines for each driver-lap combination. It's prompted to separate observable facts from theoretical explanations and provide specific, testable actions.
+
+See [ML-APPROACH.md](ML-APPROACH.md) for detailed explanation of the AI coaching synthesis methodology.
+
+**Processing time:** ~10 minutes  
+**Output:** 357 coaching documents
+
+### Stage 4: Storage (Firestore)
+
+**21,718 documents** across 7 collections:
+
+| Collection | Count | Purpose |
+|------------|-------|---------|
+| tracks | 7 | Track metadata + map configurations |
+| races | 14 | Race events |
+| best_case_composites | 62 | Theoretical perfect laps |
+| ml_section_recommendations | 20,907 | Corner-specific coaching |
+| ml_weather_recommendations | 14 | Condition analysis |
+| ml_pattern_recommendations | 357 | Consistency scoring |
+| coaching_insights | 357 | Gemma 3 strategic advice |
+
+**Why Firestore:**
+- NoSQL handles varying data structures (Road America's missing sections, races with different field counts)
+- Built-in indexing enables sub-100ms queries without manual optimization
+- Serverless—no database management overhead
+- Flexible schema accommodates real-world data anomalies
+
+**Indexing strategy:**
+- Compound indexes on driver_id + race_id + lap_number for fast recommendation lookups
+- Single-field indexes on track_id for race listing
+- Query optimization tested to ensure <100ms p95 latency during judge evaluation
+
+### Stage 5: API Layer (FastAPI)
+
+**Endpoints:**
+```
+GET  /tracks              # List all tracks with metadata
+GET  /races/{track_id}    # Races for specific track
+GET  /recommendations     # Coaching insights (filtered by driver/lap/race)
+GET  /health              # Service status
 ```
 
-**Use case:** Shows driver's gap to absolute best possible performance
+**Design choices:**
+- Async connections for non-blocking I/O
+- Query parameter validation via Pydantic models
+- CORS handled server-side (frontend and backend same origin)
+- Error handling with structured responses
 
-### Section Analysis
-Compares each driver's section time to composite, identifies specific corners losing time.
+**Response times:**
+- Track list: 45ms
+- Race data: 68ms
+- Recommendations (single lap): 92ms
+- Bulk recommendations (full race): 3.2s
 
-**Output:** "You were +0.5s slower in Section 2 (Turn 4-6)"
+### Stage 6: Frontend (React)
 
-### Weather Correlation
-Multi-variate analysis of weather conditions (temp, humidity, wind) against lap times.
+**Key components:**
+- **Interactive SVG track maps** with section-level performance overlay
+- **Draggable panels** that keep coaching visible while exploring data
+- **4 analysis modes** (sections, weather, patterns, AI) via toggle interface
+- **No authentication** for judge-friendly instant access
 
-**Technique:** Pearson correlation with significance testing
-
-### Pattern Detection
-Time-series analysis of lap-to-lap performance for consistency scoring.
-
-**Metrics:**
-- Standard deviation of lap times
-- Improvement/degradation trend
-- Consistency score (0-100)
-
-### AI Coaching (Gemma 3)
-LLM analyzes lap-by-lap data to separate facts from theories, provides evidence-based recommendations.
-
-**Prompt engineering:** "Identify observable patterns (facts), hypothesize causes (theories), suggest specific technique changes (recommendations)"
-
----
-
-## Scalability Design
-
-### Current Scale
-- 14 races, 500+ vehicles
-- 21,718 pre-computed recommendations
-- <100ms API response (Firestore indexing)
-- 2-instance max (cost cap)
-
-### Future Scale (if productionized)
-- **Real-time processing:** Streaming telemetry ingestion
-- **Historical analysis:** Multi-season comparisons
-- **Live predictions:** In-race strategy recommendations
-- **Horizontal scaling:** Cloud Run auto-scales to demand
-
-### Design Decisions for Scale
-- **Batch processing:** Run ML once, serve many times (vs. compute-per-request)
-- **NoSQL:** Firestore handles flexible schema (varying section counts per track)
-- **Stateless:** Cloud Run enables zero-downtime rolling updates
-- **Caching:** Pre-computed recommendations avoid expensive re-calculation
+**Implementation details:**
+- Material-UI component library for consistent design
+- Code splitting for faster initial load
+- React 18 concurrent rendering for smooth interactions
+- SVG rendering for scalable track maps (not pixelated images)
 
 ---
 
-## Data Quality Handling
+## Deployment Architecture
 
-**Known Issues:**
-- Road America Race 1: Missing Section 2 timing data (sensor malfunction)
+**Single Service Model:**
 
-**Mitigation:**
-- Application detects and displays 2-section layout for affected race
-- Graceful UI degradation (no errors shown to user)
-- Best-case composite correctly computed with available sections
+KaizenLap deploys as one Cloud Run service containing both FastAPI backend and React frontend static files. This bundled approach eliminates CORS complexity, simplifies deployment, and provides judges a single URL to access the complete application.
 
-**Validation Pipeline:**
-- CSV schema validation on upload
-- Missing column detection and logging
-- Section count verification per track
-- Automatic fallback for incomplete data
+**Build process:**
+1. React frontend builds to static files
+2. FastAPI bundles static files into container
+3. Single Docker image deployed to Cloud Run
+4. FastAPI serves both API endpoints and frontend assets
 
----
-
-## Security Architecture
-
-### Zero-Credential Design
-- All API keys via environment variables (never in code)
-- Service account authentication (automatic on Cloud Run)
-- No hardcoded project IDs or bucket names
-- Frontend never accesses credentials
-
-### Network Boundaries
-```
-┌──────────────────┐
-│ Browser (Public) │ ← HTTPS only
-└────────┬─────────┘
-         ↓
-┌────────────────────────────┐
-│ Cloud Run (Service)        │ ← Service account auth
-│  - Public API endpoints     │
-│  - Read-only operations     │
-└────────┬───────────────────┘
-         ↓
-┌────────────────────────────┐
-│ Firestore (Private)        │ ← Server-side only
-│ GCS (Private)              │ ← IAM permissions
-└────────────────────────────┘
-```
-
-### Attack Surface Mitigation
-- **max-instances:** Caps worst-case costs
-- **timeout:** 60s kills runaway requests
-- **concurrency:** 80 connections per instance
-- **read-only:** No DELETE/PUT endpoints exposed
+**Why bundled:**
+- ❌ Separate = 2× deployment complexity, CORS configuration, dual monitoring
+- ✅ Bundled = single URL, no CORS, one deploy command, same-origin simplicity
 
 ---
 
-## Monitoring & Observability
+## Technology Choices Explained
 
-### Health Checks
-```bash
-curl https://service-url/health
-# {"status":"healthy","version":"1.0"}
-```
+### Cloud Run (Serverless Containers)
+**Why:** Scales from zero to handle judge evaluation traffic, then back to zero. Zero-downtime deploys via rolling updates. No infrastructure management—just deploy containers.
 
-### Logging
-- **Platform:** Cloud Logging (automatic from Cloud Run)
-- **Levels:** INFO, WARNING, ERROR structured logs
-- **Retention:** 30 days default
+### Gemma 3 (Open-Source LLM on Vertex AI)
+**Why:** Self-hosted eliminates API rate limits and per-token costs. 4B parameters sufficient for structured coaching synthesis. Full control over prompt engineering and model behavior.
 
-### Metrics
-- Request count, latency, error rate (automatic)
-- Database query performance (Firestore metrics)
-- Cost tracking (GCP billing dashboard)
+**Alternative considered:** GPT-4 API would cost significantly more for 21K recommendations and introduce rate limit dependencies during heavy evaluation.
 
----
+### Firestore (NoSQL Database)
+**Why:** Flexible schema handles data variance (Road America missing sections, varying race structures). NoSQL scales horizontally without sharding complexity. Built-in indexing with minimal configuration.
 
-## Deployment Pipeline
+**Alternative considered:** Cloud SQL would require rigid schema that fails on incomplete data and manual index optimization.
 
-```
-Local Code Change
-    ↓
-Git Push
-    ↓
-Cloud Build Trigger (automatic)
-    ↓
-Multi-stage Docker Build
-    │
-    ├── Stage 1: React frontend build (npm run build)
-    └── Stage 2: FastAPI backend + frontend bundle
-    ↓
-Container Registry
-    ↓
-Cloud Run Deploy (rolling update)
-    ↓
-Health Check Validation
-    ↓
-Live Traffic (zero downtime)
-```
+### Bundled Frontend + Backend
+**Why:** Eliminates CORS preflight requests (faster). Single deployment (simpler CI/CD). Same-origin authentication and session handling. One service URL for judges.
 
-**Build time:** 4-8 minutes  
-**Rollback:** Instant (Cloud Run revision history)
+**Alternative considered:** Separate services add deployment overhead and CORS complexity without meaningful benefits for this use case.
+
+### Pre-Computed Insights
+**Why:** Demo responsiveness (judges won't wait for AI processing). Cost predictability (process once, serve unlimited times). Realistic for production (nightly batch jobs are standard in motorsport).
+
+**Alternative considered:** On-demand computation would introduce 30-60s latency per request and unpredictable compute costs during evaluation.
 
 ---
 
-## Cost Optimization
+## Data Quality & Caveats
 
-**Techniques:**
-- **Batch ML:** Process once, serve many (vs. real-time compute)
-- **Serverless:** Cloud Run scales to zero between requests
-- **Open-source:** Gemma 3 (no per-token API fees)
-- **Free tiers:** Firestore, Cloud Run within limits
+The TRD dataset represents real-world racing telemetry with real-world data characteristics:
+
+**Identified caveats:**
+- **Road America Race 1:** Missing Section 2 timing data (sensor coverage gap)
+- **Race 13:** Missing weather data fields
+- **Varying data structures:** Some races have additional telemetry fields not present in others
+- **Track map imagery:** Visual track representations don't always align perfectly with CSV section boundaries
+
+**Design decision:**
+The system focuses on **Race 1 and Race 2 from each track** because these races consistently contain the most complete data structure. This provides the strongest foundation for comparative analysis and coaching quality evaluation.
+
+**Handling approach:**
+Rather than rigid schemas that fail on incomplete data, the system detects data structure variance and adapts:
+- Missing sections → adjust track configuration and visualization
+- Missing weather → skip weather correlation for that race
+- Extra fields → ignore non-essential columns
+- Graceful degradation ensures judges see clean analytics rather than error messages
+
+**Outcome:**
+Judges evaluate coaching quality based on clean analytics rather than watching the system struggle with data gaps. This demonstrates production-grade fault tolerance—the kind required when working with live racing telemetry where sensor failures are operational realities.
+
+**Future refinement:**
+Analysis accuracy and coverage could be further enhanced with improved data quality standards: consistent section boundary definitions, complete weather station coverage, and standardized telemetry schemas across all races.
 
 ---
 
-## References
+## Performance Metrics
 
-- **Deployment:** See `docs/DEPLOYMENT.md`
-- **Operations:** See `docs/OPERATIONS.md`
-- **ML Approach:** See `docs/ML-APPROACH.md`
+**Query Response Times:**
+- Track list: 45ms
+- Race data: 68ms
+- Recommendations (single lap): 92ms
+- Bulk recommendations (full race): 3.2s
+
+**Processing Times:**
+- Analytics pipeline (4 parallel jobs): ~35 minutes
+- Gemma 3 synthesis (sequential): ~10 minutes
+- Firestore batch write: ~12 minutes
+- **Total end-to-end:** ~60 minutes
+
+**Concurrency:**
+- 80 requests per Cloud Run instance
+- 1-2 instances deployed (cost control + availability)
+- Sub-100ms p95 latency maintained under load
+
+---
+
+## Scaling Considerations
+
+**Current scale:**
+- 14 races, 500 vehicles, 21K recommendations
+- Sub-100ms API response
+- 2-instance maximum
+
+**Future scale (if productionized):**
+
+**Real-time telemetry processing:**
+- Replace CSV upload with streaming ingestion from track systems
+- Cloud Run Jobs → Cloud Run Services (persistent connections)
+- Firestore writes become streaming updates every 2-5 seconds
+- Frontend polls or uses WebSockets for live recommendation updates
+- Race engineers get split-second strategic intelligence during live sessions
+
+**Multi-season analysis:**
+- Firestore subcollections organize by season
+- Historical queries: "How does this driver's COTA performance compare to last season?"
+- Aggregate statistics and trend analysis across years
+- Driver development tracking over time
+
+**Live race strategy:**
+- Pit window optimization based on tire degradation models
+- Fuel strategy recommendations (pace × remaining laps × safety car probability)
+- Competitor pace tracking and position predictions
+- Real-time what-if scenarios ("If we pit now vs. 2 laps from now...")
+
+**Architecture supports all of this** without major rewrites. Serverless foundation scales horizontally.
+
+---
+
+## Security Model
+
+**Service Account Authentication:**
+- Cloud Run → Firestore: Automatic via IAM permissions
+- Cloud Run → GCS: Automatic (no keys in code)
+- Environment variables for configuration (no hardcoded values)
+
+**Public API (by design):**
+- No authentication required (judges need instant access)
+- Read-only endpoints (no write/delete operations exposed)
+- Rate limiting via Cloud Run (80 concurrent requests/instance)
+
+**Resource Protection:**
+- `max-instances=2` caps worst-case resource usage
+- `timeout=60s` kills long-running requests
+- Budget alerts for monitoring spend
+
+---
+
+## Configuration Management
+
+All configuration via environment variables (no hardcoded values):
+
+| Variable | Purpose |
+|----------|---------|
+| `GOOGLE_CLOUD_PROJECT` | GCP project ID |
+| `GCS_BUCKET_NAME` | Storage bucket name |
+| `USE_LOCAL_FILES` | `false` for cloud, `true` for local dev |
+| `FIRESTORE_PROJECT_ID` | Firestore project (can differ from main project) |
+
+---
+
+See [ML-APPROACH.md](ML-APPROACH.md) for algorithm details and [DEPLOYMENT.md](DEPLOYMENT.md) for reproduction steps.

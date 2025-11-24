@@ -52,7 +52,8 @@ def get_all_races_from_firestore():
     from google.cloud import firestore
     
     project_id = os.getenv('FIRESTORE_PROJECT_ID') or os.getenv('GCP_PROJECT_ID')
-    db = firestore.Client(project=project_id)
+    database_id = os.getenv("FIRESTORE_DATABASE_ID", "kaizenlap-us")
+    db = firestore.Client(project=project_id, database=database_id)
     races_ref = db.collection("races")
     tracks_ref = db.collection("tracks")
     

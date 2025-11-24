@@ -10,7 +10,7 @@ PROJECT_ID="${GCP_PROJECT_ID:-$(gcloud config get-value project)}"
 # Region resolution order: CLOUD_RUN_REGION > GCP_REGION > gcloud config run/region > default
 REGION="${CLOUD_RUN_REGION:-${GCP_REGION:-$(gcloud config get-value run/region)}}"
 if [ -z "$REGION" ] || [ "$REGION" = "(unset)" ]; then
-  REGION="europe-west1"
+  REGION="us-west2"
 fi
 GCS_BUCKET="${GCS_BUCKET:-${PROJECT_ID}-data}"
 DOCKER_REPO="${DOCKER_REPO:-us-docker.pkg.dev/${PROJECT_ID}/ml-repo}"

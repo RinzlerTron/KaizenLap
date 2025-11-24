@@ -24,11 +24,12 @@ def get_firestore_client():
     
     # Support both PROJECT_ID setting and GOOGLE_CLOUD_PROJECT env for robustness
     project_id = getattr(settings, "PROJECT_ID", "") or os.getenv("GOOGLE_CLOUD_PROJECT", "")
+    database_id = getattr(settings, "FIRESTORE_DATABASE_ID", "") or os.getenv("FIRESTORE_DATABASE_ID", "kaizenlap-us")
 
     if _client is None and project_id:
         try:
-            _client = firestore.Client(project=project_id)
-            print(f"[CLOUD MODE] Connected to Firestore: {project_id}")
+            _client = firestore.Client(project=project_id, database=database_id)
+            print(f"[CLOUD MODE] Connected to Firestore: {project_id} (database: {database_id})")
         except Exception as e:
             print(f"Warning: Could not connect to Firestore: {e}")
             _client = None

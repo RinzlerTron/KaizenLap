@@ -61,8 +61,11 @@ def get_firestore_client():
     if not project_id:
         raise ValueError("FIRESTORE_PROJECT_ID or PROJECT_ID must be set")
     
-    log.info(f"Initializing Firestore client with project: {project_id}")
-    return firestore.Client(project=project_id)
+    # Get database ID from environment or default to US database
+    database_id = os.getenv("FIRESTORE_DATABASE_ID", "kaizenlap-us")
+    
+    log.info(f"Initializing Firestore client with project: {project_id} (database: {database_id})")
+    return firestore.Client(project=project_id, database=database_id)
 
 def _load_processed_telemetry_from_gcs(race_id: int) -> pd.DataFrame:
     """Load processed telemetry from GCS for a specific race."""

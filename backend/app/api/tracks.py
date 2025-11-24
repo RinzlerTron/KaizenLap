@@ -5,9 +5,11 @@ Returns track visualization data including SVG path and section mappings.
 """
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from typing import Dict, Any, List
 from pathlib import Path
 import json
+import io
 from app.config import settings
 from app.utils.track_extraction import (
     extract_track_path_from_telemetry,
@@ -85,9 +87,9 @@ async def get_track_map_data(track_id: int):
                 map_data = json.loads(blob.download_as_text())
                 print(f"[CLOUD MODE] Loaded track map from GCS: {filename}")
                 
-                # Set GCS public URL for image
+                # Set API endpoint URL for image (served through backend for security)
                 image_filename = image_files.get(track_id)
-                map_data["image_url"] = f"https://storage.googleapis.com/{settings.GCS_BUCKET_NAME}/processed/track_images/{image_filename}"
+                map_data["image_url"] = f"/api/tracks/{track_id}/image"
         except Exception as e:
             print(f"Warning: Could not load from GCS: {e}")
 
@@ -118,7 +120,8 @@ async def get_track_map_data(track_id: int):
     # Final fallback: return basic track data
     image_url = f"/static/track_images/{image_files.get(track_id, 'barber_track_diagram.png')}"
     if settings.GCS_BUCKET_NAME and not settings.USE_LOCAL_FILES:
-        image_url = f"https://storage.googleapis.com/{settings.GCS_BUCKET_NAME}/processed/track_images/{image_files.get(track_id, 'barber_track_diagram.png')}"
+        # Use API endpoint instead of direct GCS URL for security
+        image_url = f"/api/tracks/{track_id}/image"
 
     return {
         "track_id": track_id,
@@ -153,6 +156,79 @@ async def get_track_map_data(track_id: int):
         "markers": [],
         "status": "fallback_data"
     }
+
+
+@router.get("/tracks/{track_id}/image")
+async def get_track_image(track_id: int):
+    """
+    Serve track image from GCS through API (keeps bucket private).
+    
+    Args:
+        track_id: Track identifier
+        
+    Returns:
+        Image file with proper content type
+    """
+    image_files = {
+        1: "barber_track_diagram.png",
+        2: "cota_track_diagram.png",
+        3: "indy_track_diagram.png",
+        4: "road-america_track_diagram.png",
+        5: "sebring_track_diagram.png",
+        6: "sonoma_track_diagram.png",
+        7: "vir_track_diagram.png"
+    }
+    
+    image_filename = image_files.get(track_id)
+    if not image_filename:
+        raise HTTPException(status_code=404, detail="Track image not found")
+    
+    # Try cloud storage first if configured
+    if settings.GCS_BUCKET_NAME and not settings.USE_LOCAL_FILES:
+        try:
+            from google.cloud import storage
+            client = storage.Client()
+            bucket = client.bucket(settings.GCS_BUCKET_NAME)
+            blob = bucket.blob(f"processed/track_images/{image_filename}")
+            
+            if blob.exists():
+                # Download image bytes
+                image_bytes = blob.download_as_bytes()
+                
+                # Determine content type
+                content_type = "image/png" if image_filename.endswith(".png") else "image/jpeg"
+                
+                # Return as streaming response
+                return StreamingResponse(
+                    io.BytesIO(image_bytes),
+                    media_type=content_type,
+                    headers={
+                        "Cache-Control": "public, max-age=31536000"  # Cache for 1 year
+                    }
+                )
+            else:
+                raise HTTPException(status_code=404, detail="Image file not found in GCS")
+        except Exception as e:
+            print(f"Error loading image from GCS: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to load image: {str(e)}")
+    
+    # Fallback to local files
+    if settings.USE_LOCAL_FILES:
+        try:
+            from pathlib import Path
+            project_root = Path(__file__).parent.parent.parent.parent
+            image_file = project_root / "local" / "data" / "cloud_upload" / "processed" / "track_images" / image_filename
+            
+            if image_file.exists():
+                from fastapi.responses import FileResponse
+                return FileResponse(str(image_file), media_type="image/png")
+            else:
+                raise HTTPException(status_code=404, detail="Image file not found locally")
+        except Exception as e:
+            print(f"Error loading local image: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to load image: {str(e)}")
+    
+    raise HTTPException(status_code=404, detail="Image not available")
 
 
 @router.get("/tracks/{track_id}/best-case/sections")
