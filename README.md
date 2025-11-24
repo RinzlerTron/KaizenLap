@@ -1,5 +1,12 @@
 # KaizenLap
 
+<div align="center">
+
+![Google Cloud](https://img.shields.io/badge/Google%20Cloud-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)
+![Gemma 3](https://img.shields.io/badge/Gemma%203-FF6F00?style=for-the-badge&logo=google&logoColor=white)
+
+</div>
+
 *"Kaizen" (改善) - Japanese for "continuous improvement." That's what racing is all about.*
 
 **AI-Powered Racing Performance Coach for Toyota GR Cup**
