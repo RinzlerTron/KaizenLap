@@ -427,11 +427,11 @@ class WeatherImpactAnalyser(BaseAnalyser):
             corr_key = f"{col}_correlation"
             if corr_key in correlations:
                 corr_value = correlations[corr_key]
-                if abs(corr_value) > ml_config.weather_thresholds["significant_correlation"]:
+                if abs(corr_value) > weather_thresholds["significant_correlation"]:
                     significant_correlations.append({
                         "metric": col,
                         "correlation": corr_value,
-                        "strength": "strong" if abs(corr_value) > ml_config.weather_thresholds["strong_correlation"] else "moderate"
+                        "strength": "strong" if abs(corr_value) > weather_thresholds["strong_correlation"] else "moderate"
                     })
                     
                     # Get actual weather range for this race
@@ -441,23 +441,23 @@ class WeatherImpactAnalyser(BaseAnalyser):
                     
                     # Estimate impact: correlation * weather_range gives approximate lap time impact
                     # For example: corr=0.4, temp_range=2°C means ~0.8s impact per 2°C change
-                    strength_word = "strong" if abs(corr_value) > ml_config.weather_thresholds["strong_correlation"] else "moderate"
+                    strength_word = "strong" if abs(corr_value) > weather_thresholds["strong_correlation"] else "moderate"
                     
                     if col == 'track_temp_celsius':
-                        if corr_value > ml_config.weather_thresholds["significant_correlation"]:
+                        if corr_value > weather_thresholds["significant_correlation"]:
                             interpretation.append(f"Track temperature showed {strength_word} positive correlation (r={corr_value:.2f}) with lap times. Track temp ranged from {weather_min:.1f}°C to {weather_max:.1f}°C ({weather_range:.1f}°C range). Higher track temperatures correlate with slower lap times, likely due to tire overheating and reduced grip.")
-                        elif corr_value < -ml_config.weather_thresholds["significant_correlation"]:
+                        elif corr_value < -weather_thresholds["significant_correlation"]:
                             interpretation.append(f"Track temperature showed {strength_word} negative correlation (r={corr_value:.2f}) with lap times. Track temp ranged from {weather_min:.1f}°C to {weather_max:.1f}°C ({weather_range:.1f}°C range). Lower track temperatures correlate with slower lap times, possibly due to difficulty getting tires into optimal operating window.")
                     elif col == 'air_temp_celsius':
-                        if corr_value > ml_config.weather_thresholds["significant_correlation"]:
+                        if corr_value > weather_thresholds["significant_correlation"]:
                             interpretation.append(f"Air temperature showed {strength_word} positive correlation (r={corr_value:.2f}) with lap times. Air temp ranged from {weather_min:.1f}°C to {weather_max:.1f}°C ({weather_range:.1f}°C range). Higher air temperatures correlate with slower lap times, affecting engine performance and tire grip.")
-                        elif corr_value < -ml_config.weather_thresholds["significant_correlation"]:
+                        elif corr_value < -weather_thresholds["significant_correlation"]:
                             interpretation.append(f"Air temperature showed {strength_word} negative correlation (r={corr_value:.2f}) with lap times. Air temp ranged from {weather_min:.1f}°C to {weather_max:.1f}°C ({weather_range:.1f}°C range). Lower air temperatures correlate with slower lap times, affecting tire warm-up and engine efficiency.")
                     elif col == 'humidity_percent':
-                        if corr_value > ml_config.weather_thresholds["significant_correlation"]:
+                        if corr_value > weather_thresholds["significant_correlation"]:
                             interpretation.append(f"Humidity showed {strength_word} positive correlation (r={corr_value:.2f}) with lap times. Humidity ranged from {weather_min:.1f}% to {weather_max:.1f}% ({weather_range:.1f}% range). Higher humidity correlates with slower lap times, affecting engine power and aerodynamics.")
                     elif col == 'wind_speed':
-                        if abs(corr_value) > ml_config.weather_thresholds["significant_correlation"]:
+                        if abs(corr_value) > weather_thresholds["significant_correlation"]:
                             direction = "positive" if corr_value > 0 else "negative"
                             interpretation.append(f"Wind speed showed {strength_word} {direction} correlation (r={corr_value:.2f}) with lap times. Wind speed ranged from {weather_min:.1f} to {weather_max:.1f} km/h ({weather_range:.1f} km/h range). Wind speed affects aerodynamics and top speed.")
         
