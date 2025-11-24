@@ -331,8 +331,11 @@ const DraggableRecommendationPanel = ({
                   <Box sx={{ mt: 2 }}>
                     <Divider sx={{ my: 2 }} />
                     
-                    {/* ML Analysis Interpretation - Show prominently if available */}
-                    {recommendation.recommendation_text && recommendation.recommendation_text.trim() && (
+                    {/* ML Analysis Interpretation - Show prominently if available (only if it's actual correlation analysis, not basic summary) */}
+                    {recommendation.recommendation_text && 
+                     recommendation.recommendation_text.trim() && 
+                     !recommendation.recommendation_text.includes("While detailed correlation analysis requires time-aligned lap data") &&
+                     !recommendation.recommendation_text.includes("Air temperature averaged") && (
                       <Box sx={{ mb: 3 }}>
                         <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, color: 'info.main' }}>
                           Weather Impact Analysis:
@@ -412,41 +415,42 @@ const DraggableRecommendationPanel = ({
                       Performance Metrics:
                     </Typography>
                     
-                    {data.lap_count !== undefined && (
+                    {(consistencyAnalysis.lap_count !== undefined || data.lap_count !== undefined) && (
                       <Typography variant="body2" sx={{ mb: 1 }}>
-                        <strong>Laps Analyzed:</strong> {String(data.lap_count)}
+                        <strong>Laps Analyzed:</strong> {String(consistencyAnalysis.lap_count || data.lap_count)}
                       </Typography>
                     )}
                     
-                    {data.mean_lap_time_s !== undefined && (
+                    {(consistencyAnalysis.mean_lap_time_s !== undefined || data.mean_lap_time_s !== undefined) && (
                       <Typography variant="body2" sx={{ mb: 1 }}>
-                        <strong>Average Lap Time:</strong> {Number(data.mean_lap_time_s).toFixed(3)}s
+                        <strong>Average Lap Time:</strong> {Number(consistencyAnalysis.mean_lap_time_s || data.mean_lap_time_s).toFixed(3)}s
                       </Typography>
                     )}
                     
-                    {data.std_lap_time_s !== undefined && (
+                    {(consistencyAnalysis.std_lap_time_s !== undefined || data.std_lap_time_s !== undefined) && (
                       <Typography variant="body2" sx={{ mb: 1 }}>
-                        <strong>Consistency (Std Dev):</strong> {Number(data.std_lap_time_s).toFixed(3)}s
+                        <strong>Consistency (Std Dev):</strong> {Number(consistencyAnalysis.std_lap_time_s || data.std_lap_time_s).toFixed(3)}s
                       </Typography>
                     )}
                     
-                    {data.consistency_score !== undefined && (
+                    {(consistencyAnalysis.consistency_score !== undefined || data.consistency_score !== undefined) && (
                       <Typography variant="body2" sx={{ mb: 1 }}>
-                        <strong>Consistency Score:</strong> {(Number(data.consistency_score) * 100).toFixed(1)}%
+                        <strong>Consistency Score:</strong> {(Number(consistencyAnalysis.consistency_score || data.consistency_score) * 100).toFixed(1)}%
                       </Typography>
                     )}
                     
-                    {data.min_lap_time_s !== undefined && data.max_lap_time_s !== undefined && (
+                    {((consistencyAnalysis.min_lap_time_s !== undefined && consistencyAnalysis.max_lap_time_s !== undefined) ||
+                      (data.min_lap_time_s !== undefined && data.max_lap_time_s !== undefined)) && (
                       <Box sx={{ mb: 2, mt: 1, p: 1.5, bgcolor: 'background.default', borderRadius: 1 }}>
                         <Typography variant="body2" sx={{ mb: 0.5 }}>
-                          <strong>Best Lap:</strong> {Number(data.min_lap_time_s).toFixed(3)}s
+                          <strong>Best Lap:</strong> {Number(consistencyAnalysis.min_lap_time_s || data.min_lap_time_s).toFixed(3)}s
                         </Typography>
                         <Typography variant="body2">
-                          <strong>Worst Lap:</strong> {Number(data.max_lap_time_s).toFixed(3)}s
+                          <strong>Worst Lap:</strong> {Number(consistencyAnalysis.max_lap_time_s || data.max_lap_time_s).toFixed(3)}s
                         </Typography>
-                        {data.min_lap_time_s && data.max_lap_time_s && (
+                        {(consistencyAnalysis.min_lap_time_s || data.min_lap_time_s) && (consistencyAnalysis.max_lap_time_s || data.max_lap_time_s) && (
                           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                            Range: {(Number(data.max_lap_time_s) - Number(data.min_lap_time_s)).toFixed(3)}s
+                            Range: {(Number(consistencyAnalysis.max_lap_time_s || data.max_lap_time_s) - Number(consistencyAnalysis.min_lap_time_s || data.min_lap_time_s)).toFixed(3)}s
                           </Typography>
                         )}
                       </Box>
