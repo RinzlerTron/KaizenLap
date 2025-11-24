@@ -275,11 +275,23 @@ class PatternAnalyser(BaseAnalyser):
         
         lap_times = laps_df['lap_time_s'].values
         
+        # Find lap numbers for min/max times
+        min_lap_idx = np.argmin(lap_times)
+        max_lap_idx = np.argmax(lap_times)
+        min_lap_number = None
+        max_lap_number = None
+        
+        if 'lap_number' in laps_df.columns:
+            min_lap_number = int(laps_df.iloc[min_lap_idx]['lap_number']) if min_lap_idx < len(laps_df) else None
+            max_lap_number = int(laps_df.iloc[max_lap_idx]['lap_number']) if max_lap_idx < len(laps_df) else None
+        
         consistency_metrics = {
             "mean_lap_time_s": float(np.mean(lap_times)),
             "std_lap_time_s": float(np.std(lap_times)),
             "min_lap_time_s": float(np.min(lap_times)),
             "max_lap_time_s": float(np.max(lap_times)),
+            "min_lap_number": min_lap_number,
+            "max_lap_number": max_lap_number,
             "lap_count": len(lap_times),
             "consistency_score": 0.0,  # Will calculate
             "improvement_trend": "stable"  # Will analyze

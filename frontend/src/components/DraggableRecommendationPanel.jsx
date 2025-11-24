@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Paper, Box, Typography, IconButton,
-  Chip, Divider, Button
+  Chip, Divider, Button, Tooltip as MuiTooltip
 } from '@mui/material';
 import {
-  Close, DragIndicator, Psychology, Cloud, TrendingUp, School
+  Close, DragIndicator, Psychology, Cloud, TrendingUp, School, InfoOutlined
 } from '@mui/icons-material';
 import { useApi } from '../hooks/useApi';
 
@@ -310,7 +310,8 @@ const DraggableRecommendationPanel = ({
             )}
             
             {/* Default Rendering for non-coaching types or if structured_data not available */}
-            {recommendationType !== 'coaching' && (
+            {/* Skip default rendering for weather/pattern - they have custom rendering below */}
+            {recommendationType !== 'coaching' && recommendationType !== 'weather' && recommendationType !== 'pattern' && (
               <Box>
                 <Typography variant="body1" sx={{ mb: 2, lineHeight: 1.6 }}>
                   {recommendation.recommendation_text || recommendation.analysis_text || 'No recommendation available'}
@@ -428,12 +429,18 @@ const DraggableRecommendationPanel = ({
                     )}
                     
                     {(consistencyAnalysis.std_lap_time_s !== undefined || data.std_lap_time_s !== undefined) && (
-                      <Typography variant="body2" sx={{ mb: 1 }}>
-                        <strong>Consistency (Std Dev):</strong> {Number(consistencyAnalysis.std_lap_time_s || data.std_lap_time_s).toFixed(3)}s
-                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+                        <Typography variant="body2">
+                          <strong>Consistency (Std Dev):</strong> {Number(consistencyAnalysis.std_lap_time_s || data.std_lap_time_s).toFixed(3)}s
+                        </Typography>
+                        <MuiTooltip title="Standard deviation of lap times. Lower values indicate more consistent performance. A value of 0.5s means lap times typically vary by ±0.5s from the average." arrow>
+                          <InfoOutlined sx={{ fontSize: 16, color: 'text.secondary', cursor: 'help' }} />
+                        </MuiTooltip>
+                      </Box>
                     )}
                     
-                    {(consistencyAnalysis.consistency_score !== undefined || data.consistency_score !== undefined) && (
+                    {((consistencyAnalysis.consistency_score !== undefined && consistencyAnalysis.consistency_score !== null && !isNaN(consistencyAnalysis.consistency_score)) ||
+                      (data.consistency_score !== undefined && data.consistency_score !== null && !isNaN(data.consistency_score))) && (
                       <Typography variant="body2" sx={{ mb: 1 }}>
                         <strong>Consistency Score:</strong> {(Number(consistencyAnalysis.consistency_score || data.consistency_score) * 100).toFixed(1)}%
                       </Typography>
@@ -444,9 +451,15 @@ const DraggableRecommendationPanel = ({
                       <Box sx={{ mb: 2, mt: 1, p: 1.5, bgcolor: 'background.default', borderRadius: 1 }}>
                         <Typography variant="body2" sx={{ mb: 0.5 }}>
                           <strong>Best Lap:</strong> {Number(consistencyAnalysis.min_lap_time_s || data.min_lap_time_s).toFixed(3)}s
+                          {(consistencyAnalysis.min_lap_number !== undefined || data.min_lap_number !== undefined) && (
+                            <span> (Lap {consistencyAnalysis.min_lap_number || data.min_lap_number})</span>
+                          )}
                         </Typography>
                         <Typography variant="body2">
                           <strong>Worst Lap:</strong> {Number(consistencyAnalysis.max_lap_time_s || data.max_lap_time_s).toFixed(3)}s
+                          {(consistencyAnalysis.max_lap_number !== undefined || data.max_lap_number !== undefined) && (
+                            <span> (Lap {consistencyAnalysis.max_lap_number || data.max_lap_number})</span>
+                          )}
                         </Typography>
                         {(consistencyAnalysis.min_lap_time_s || data.min_lap_time_s) && (consistencyAnalysis.max_lap_time_s || data.max_lap_time_s) && (
                           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
