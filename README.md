@@ -113,7 +113,7 @@ Combines traditional motorsport analytics with LLM-powered reasoning that explic
 
 KaizenLap competes primarily in **Driver Training & Insights** but demonstrates capabilities across multiple competition categories:
 
-### ⭐ Primary: Driver Training & Insights
+### Primary: Driver Training & Insights
 - **20,907 section-specific coaching recommendations**: Every lap section analyzed across all drivers with AI-generated improvement strategies
 - **Root cause analysis**: AI separates driver technique issues from setup problems and environmental factors
 - **Actionable intelligence**: Not "you're slow here" but "you're slow here because of X, try Y"

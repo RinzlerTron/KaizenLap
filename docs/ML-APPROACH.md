@@ -244,13 +244,13 @@ It's not just "you're slow in Turn 4." It's "you're slow in Turn 4 because of me
 
 ## Categories Addressed
 
-**✅ Driver Training & Insights (Primary)**  
+**Driver Training & Insights (Primary)**  
 20,907 section-specific recommendations with root cause analysis. AI separates technique issues from setup problems. Actionable coaching: not "you're slow here" but "you're slow here because X, try Y."
 
-**✅ Post-Event Analysis (Secondary)**  
+**Post-Event Analysis (Secondary)**  
 Complete race reconstruction with weather correlation, consistency trends, pace evolution. Shows how each driver performed relative to the theoretical best, not just the race winner.
 
-**✅ Wildcard (Tertiary)**  
+**Wildcard (Tertiary)**  
 First application of LLMs to racing coaching with structured fact/hypothesis/recommendation framework. Novel use of open-source Gemma 3 makes this economically viable at scale.
 
 ---

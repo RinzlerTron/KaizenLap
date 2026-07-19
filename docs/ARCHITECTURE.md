@@ -137,8 +137,8 @@ KaizenLap deploys as one Cloud Run service containing both FastAPI backend and R
 4. FastAPI serves both API endpoints and frontend assets
 
 **Why bundled:**
-- ❌ Separate = 2× deployment complexity, CORS configuration, dual monitoring
-- ✅ Bundled = single URL, no CORS, one deploy command, same-origin simplicity
+- Separate = 2× deployment complexity, CORS configuration, dual monitoring
+- Bundled = single URL, no CORS, one deploy command, same-origin simplicity
 
 ---
 
